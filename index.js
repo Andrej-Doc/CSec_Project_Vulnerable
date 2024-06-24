@@ -5,7 +5,6 @@
  */
 
 var express = require('express');
-var hash = require('pbkdf2-password')()
 var path = require('path');
 var session = require('express-session');
 var mysql = require('mysql2')
@@ -17,9 +16,6 @@ const connection = mysql.createConnection({
   database: 'userdb'
 })
 
-
-
-
 var app = module.exports = express();
 
 // config
@@ -27,38 +23,35 @@ var app = module.exports = express();
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// middleware
-
 app.use(express.urlencoded({ extended: false }))
 app.use(session({
-  resave: false, // don't save session if unmodified
-  saveUninitialized: false, // don't create session until something stored
-  secret: 'shhhh, very secret'
-}));
+  secret: 'keyboard cat',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { maxAge: 60 }
+}))
+
+
 
 // Session-persisted message middleware
-
-app.use(function (req, res, next) {
-  var err = req.session.error;
-  var msg = req.session.success;
-  delete req.session.error;
-  delete req.session.success;
-  res.locals.message = '';
-  if (err) res.locals.message = '<p class="msg error">' + err + '</p>';
-  if (msg) res.locals.message = '<p class="msg success">' + msg + '</p>';
-  next();
-});
-
+app.get('/', function(req, res, next) {
+  if (req.session.views) {
+    req.session.views++
+    res.setHeader('Content-Type', 'text/html')
+    res.write('<p>views: ' + req.session.views + '</p>')
+    res.write('<p>expires in: ' + (req.session.cookie.maxAge / 1000) + 's</p>')
+    res.end()
+  } 
+})
 
 function restrict(req, res, next) {
-  if (req.session.user) {
+  if (req.session.id) {
     next();
   } else {
-    req.session.error = 'Access denied!';
+    console.log('Access denied!');
     res.redirect('/login');
   }
 }
-
 
 app.get('/', function (req, res) {
   res.redirect('/login');
@@ -80,39 +73,41 @@ app.get('/login', function (req, res) {
   res.render('login');
 });
 
+app.get('/register', function (req, res) {
+  res.render('register');
+});
+//register user
+
+app.post('/auth/register', function (req, res) {
+
+});
+
 // login and authenticate user
-
-connection.query('SELECT 1 + 1 AS solution', (err, rows, fields) => {
-  if (err) throw err
-
-  console.log('The solution is: ', rows[0].solution)
-})
-app.get('/auth', (req, res) => {
-  connection.connect();
-  let username = req.body.username;
-  let password = req.body.password;
+app.post('/auth/login', function (req, res) {
+  const username = req.body.username;
+  const password = req.body.password;
   if (username && password) {
-    const query = `SELECT * FROM users WHERE username="${username}" AND password="${password}";`;
-
-    connection.query(query, values, (error, results, fields) => {
-      if (error) {
-        throw error;
-      }
+    connection.query(`SELECT * FROM users WHERE username='${username}' AND password ='${password}'`, function (error, results, fileds) {
+      if (error) throw error;
       if (results.length > 0) {
         req.session.loggedin = true;
         req.session.username = username;
-        res.redirect('back');
+        res.redirect('/restricted');
       }
       else {
         res.send('Incorrect Username and/or Password');
       }
       res.end();
-    })
+    }
+    );
   } else {
     res.send('Please enter Username and Password');
     res.end();
   }
-})
+
+});
+
+
 if (!module.parent) {
   app.listen(3000);
   console.log('Express started on port 3000');
