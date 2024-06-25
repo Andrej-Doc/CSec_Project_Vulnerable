@@ -9,6 +9,8 @@ var path = require('path');
 var session = require('express-session');
 var mysql = require('mysql2')
 
+// MySQL server connection
+
 const connection = mysql.createConnection({
   host: 'localhost',
   user: 'Admin',
@@ -43,7 +45,7 @@ app.get('/', function(req, res, next) {
     res.end()
   } 
 })
-
+// deny access to logged out users
 function restrict(req, res, next) {
   if (req.session.id) {
     next();
@@ -57,6 +59,7 @@ app.get('/', function (req, res) {
   res.redirect('/login');
 });
 
+// logged in users can see this
 app.get('/restricted', restrict, function (req, res) {
   res.send('Wahoo! restricted area, click to <a href="/logout">logout</a>');
 });
@@ -86,10 +89,12 @@ app.post('/auth/register', function (req, res) {
 app.post('/auth/login', function (req, res) {
   const username = req.body.username;
   const password = req.body.password;
+  // Unsafe login query
   if (username && password) {
     connection.query(`SELECT * FROM users WHERE username='${username}' AND password ='${password}'`, function (error, results, fileds) {
       if (error) throw error;
       if (results.length > 0) {
+        // set session
         req.session.loggedin = true;
         req.session.username = username;
         res.redirect('/restricted');
