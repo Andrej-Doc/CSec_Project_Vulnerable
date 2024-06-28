@@ -1,18 +1,29 @@
 <%- include('head', { title: 'Unsafe Registration' }) -%>
+  <h1>Registration</h1>
+  <table>
+    <tr>
+      <td>
+        <form method="POST" action="/auth/register">
+          <p>
+            <label for="username">Username:</label>
+            <input type="text" name="username" id="username">
+          </p>
+          <p>
+            <label for="password">Password:</label>
+            <input type="text" name="password" id="password">
+          </p>
+          <p>
+            <input type="submit" value="Submit">
+            <a href=/login class="button">Login</a>
+          </p>
+        </form>
+      </td>
+      <td>
+        <form method="POST" action="/auth/ResetDB">
+          <input type="submit" value="ResetDB">
+        </form>
+      </td>
+    </tr>
+  </table>
 
-<h1>Registration</h1>
-<form method="POST" action="/auth/register">
-  <p>
-    <label for="username">Username:</label>
-    <input type="text" name="username" id="username">
-  </p>
-  <p>
-    <label for="password">Password:</label>
-    <input type="text" name="password" id="password">
-  </p>
-  <p>
-    <input type="submit" value="Submit">
-  </p>
-</form>
-
-<%- include('foot') -%>
+  <%- include('foot') -%>

@@ -9,14 +9,24 @@ var path = require('path');
 var session = require('express-session');
 var mysql = require('mysql2')
 
+// Error handling
+process.on('uncaughtException', function (err) {
+  console.error(err);
+  console.log("Node NOT Exiting...");
+});
+
 // MySQL server connection
 
-const connection = mysql.createConnection({
+const connection = mysql.createPool({
   host: 'localhost',
   user: 'Admin',
   password: 'UkR3ROzecWiHVuTUCjVL',
-  database: 'userdb'
+  database: 'userdb',
+  multipleStatements: true,
+  keepAliveInitialDelay: 10000,
+  enableKeepAlive: true
 })
+
 
 var app = module.exports = express();
 
@@ -36,15 +46,17 @@ app.use(session({
 
 
 // Session-persisted message middleware
-app.get('/', function(req, res, next) {
-  if (req.session.views) {
-    req.session.views++
-    res.setHeader('Content-Type', 'text/html')
-    res.write('<p>views: ' + req.session.views + '</p>')
-    res.write('<p>expires in: ' + (req.session.cookie.maxAge / 1000) + 's</p>')
-    res.end()
-  } 
-})
+app.use(function (req, res, next) {
+  var err = req.session.error;
+  var msg = req.session.success;
+  delete req.session.error;
+  delete req.session.success;
+  res.locals.message = '';
+  if (err) res.locals.message = '<p class="msg error">' + err + '</p>';
+  if (msg) res.locals.message = '<p class="msg success">' + msg + '</p>';
+  next();
+});
+
 // deny access to logged out users
 function restrict(req, res, next) {
   if (req.session.id) {
@@ -79,6 +91,10 @@ app.get('/login', function (req, res) {
 app.get('/register', function (req, res) {
   res.render('register');
 });
+
+app.get('/index', function (req, res){
+  res.render('index');
+})
 //register user
 
 app.post('/auth/register', function (req, res) {
@@ -91,7 +107,7 @@ app.post('/auth/login', function (req, res) {
   const password = req.body.password;
   // Unsafe login query
   if (username && password) {
-    connection.query(`SELECT * FROM users WHERE username='${username}' AND password ='${password}'`, function (error, results, fileds) {
+    connection.query(`SELECT * FROM users WHERE username='${username}' AND userpass ='${password}'`, function (error, results, fileds) {
       if (error) throw error;
       if (results.length > 0) {
         // set session
@@ -100,17 +116,24 @@ app.post('/auth/login', function (req, res) {
         res.redirect('/restricted');
       }
       else {
-        res.send('Incorrect Username and/or Password');
+        res.send('Incorrect Username and/or Password, click to <a href="/login">return</a>');
       }
       res.end();
     }
     );
   } else {
-    res.send('Please enter Username and Password');
+    res.send('Please enter Username and Password then <a href="/login">try again</a>');
     res.end();
   }
 
 });
+
+//reset DB
+app.post('/auth/ResetDB', function (req, res) {
+  connection.query(`TRUNCATE TABLE users; INSERT INTO users VALUES (DEFAULT, 'a', 'a'), (DEFAULT, 'b', 'b');`)
+  res.redirect('/login')
+
+})
 
 
 if (!module.parent) {
