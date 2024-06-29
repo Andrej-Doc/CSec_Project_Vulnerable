@@ -1,30 +1,34 @@
 <%- include('head', { title: 'Unsafe Login' }) -%>
 
-  <h1>Login</h1>
-  <table>
-    <tr>
-      <td>
-        <form method="POST" action="/auth/login">
-          <p>
-            <label for="username">Username:</label>
-            <input type="text" name="username" id="username">
-          </p>
-          <p>
-            <label for="password">Password:</label>
-            <input type="text" name="password" id="password">
-          </p>
-          <p>
-            <input type="submit" value="Login">
-            <a href=/register class="button">Register</a>
-          </p>
-        </form>
+  <% if (PORT) { %>
+    <h2>Express running on port <%= PORT %>
+    </h2>
+    <% } %>
+      <h1>Login</h1>
+      <table>
+        <tr>
+          <td>
+            <form method="POST" action="/auth/login">
+              <p>
+                <label for="username">Username:</label>
+                <input type="text" name="username" id="username">
+              </p>
+              <p>
+                <label for="password">Password:</label>
+                <input type="text" name="password" id="password">
+              </p>
+              <p>
+                <input type="submit" value="Login">
+                <a href=/register class="button">Register</a>
+              </p>
+            </form>
 
-      </td>
-      <td>
-        <form method="POST" action="/auth/ResetDB">
-          <input type="submit" value="ResetDB">
-        </form>
-      </td>
-    </tr>
-  </table>
-  <%- include('foot') -%>
+          </td>
+          <td>
+            <form method="POST" action="/auth/ResetDB">
+              <input type="submit" value="ResetDB">
+            </form>
+          </td>
+        </tr>
+      </table>
+      <%- include('foot') -%>

@@ -8,6 +8,7 @@ var express = require('express');
 var path = require('path');
 var session = require('express-session');
 var mysql = require('mysql2/promise')
+const PORT = 3000;
 
 // Error handling
 process.on('uncaughtException', function (err) {
@@ -69,8 +70,8 @@ function restrict(req, res, next) {
   }
 }
 
-app.get('/', function (req, res) {
-  res.redirect('/login');
+app.get('/', (req, res) => {
+  res.render('login', req.query);
 });
 
 // logged in users can see this
@@ -87,7 +88,7 @@ app.get('/logout', function (req, res) {
 });
 
 app.get('/login', function (req, res) {
-  res.render('login');
+  res.render('login', {PORT});
 });
 
 app.get('/register', function (req, res) {
@@ -104,18 +105,22 @@ app.post('/auth/register', async (req, res) => {
   const password = req.body.password;
   const poolConn = await connection.getConnection();
   if (username && password) {
-    await poolConn.query(`SELECT * FROM users WHERE username ='${username}'`).then(([rows])=>{
-      if (rows != 0) {
-        res.send('Username already exists, click to <a href="/register">try again</a>');
-      }
-      else
-       poolConn.query(`INSERT INTO users VALUES (DEFAULT, '${username}', '${password}')`).then(res.redirect('../restricted')).catch(error=>{
-          throw error;
-        })
-  }).catch(error =>{
-    throw error;
-  });}
-  else{
+    await poolConn.query(`SELECT * FROM users WHERE username ='${username}'`)
+      .then(([rows]) => {
+        if (rows != 0) {
+          res.send('Username already exists, click to <a href="/register">try again</a>');
+        }
+        else
+          poolConn.query(`INSERT INTO users VALUES (DEFAULT, '${username}', '${password}')`)
+            .then(res.redirect('../restricted'))
+            .catch(error => {
+              throw error;
+            })
+      }).catch(error => {
+        throw error;
+      });
+  }
+  else {
     res.send('Please enter Username and Password then <a href="/register">try again</a>');
     res.end();
   }
@@ -157,6 +162,6 @@ app.post('/auth/ResetDB', function (req, res) {
 
 
 if (!module.parent) {
-  app.listen(3000);
-  console.log('Express started on port 3000');
+  app.listen(PORT);
+  console.log(`Express started on port ${PORT}`);
 }
