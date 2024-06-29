@@ -62,7 +62,7 @@ app.use(function (req, res, next) {
   next();
 });
 
-// deny access to logged out users
+// deny access to logged out users CWE-284
 function restrict(req, res, next) {
   if (req.session) {
     next();
@@ -71,7 +71,7 @@ function restrict(req, res, next) {
     res.redirect('/login');
   }
 }
-
+// Allows XSS - CWE-79 and CVE-2017-1000228	related to EJS
 app.get('/', (req, res) => {
   res.render('login', { PORT });
 });
@@ -107,7 +107,7 @@ app.post('/auth/register', async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
   const poolConn = await connection.getConnection();
-  // Vulnerable registration
+  // Vulnerable registration CWE-59
   if (username && password) {
     const [rows] = await poolConn.query(`SELECT * FROM users WHERE username ='${username}'`)
         if (rows.length > 0) {
@@ -132,7 +132,7 @@ app.post('/auth/login', async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
   const poolConn = await connection.getConnection();
-  // Vulnerable login query
+  // Vulnerable login query CWE-59
   if (username && password) {
     const [rows] = await poolConn.query(`SELECT * FROM users WHERE username='${username}' AND userpass ='${password}'`)
     
