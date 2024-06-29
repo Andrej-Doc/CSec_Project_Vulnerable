@@ -8,6 +8,7 @@ var express = require('express');
 var path = require('path');
 var session = require('express-session');
 var mysql = require('mysql2/promise')
+const util = require('util')
 const PORT = 3000;
 
 // Error handling
@@ -43,8 +44,9 @@ app.use(session({
   secret: 'keyboard cat',
   resave: false,
   saveUninitialized: true,
-  cookie: { maxAge: 60 }
+  cookie: { maxAge: 600000000 }
 }))
+
 
 
 
@@ -62,7 +64,7 @@ app.use(function (req, res, next) {
 
 // deny access to logged out users
 function restrict(req, res, next) {
-  if (req.session.id) {
+  if (req.session.loggedin) {
     next();
   } else {
     console.log('Access denied!');
@@ -71,12 +73,13 @@ function restrict(req, res, next) {
 }
 
 app.get('/', (req, res) => {
-  res.render('login', {PORT});
+  res.render('login', { PORT });
 });
 
 // logged in users can see this
 app.get('/restricted', restrict, function (req, res) {
-  res.render('restricted',);
+  const USERNAME = req.session.username;
+  res.render('restricted', { USERNAME });
 });
 
 app.get('/logout', function (req, res) {
@@ -88,7 +91,7 @@ app.get('/logout', function (req, res) {
 });
 
 app.get('/login', function (req, res) {
-  res.render('login', {PORT});
+  res.render('login', { PORT });
 });
 
 app.get('/register', function (req, res) {
@@ -104,22 +107,20 @@ app.post('/auth/register', async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
   const poolConn = await connection.getConnection();
-  // unsafe registration
+  // Vulnerable registration
   if (username && password) {
-    await poolConn.query(`SELECT * FROM users WHERE username ='${username}'`)
-      .then(([rows]) => {
-        if (rows != 0) {
+    const [rows] = await poolConn.query(`SELECT * FROM users WHERE username ='${username}'`)
+    console.log(rows.lenght);
+        if (rows.length > 0) {
           res.send('Username already exists, click to <a href="/register">try again</a>');
         }
-        else
+        else{
           poolConn.query(`INSERT INTO users VALUES (DEFAULT, '${username}', '${password}')`)
-            .then(res.redirect('../restricted'))
-            .catch(error => {
-              throw error;
-            })
-      }).catch(error => {
-        throw error;
-      });
+          req.session.loggedin = true;
+          req.session.username = username;
+          res.redirect('../restricted');
+
+        }
   }
   else {
     res.send('Please enter Username and Password then <a href="/register">try again</a>');
@@ -132,24 +133,23 @@ app.post('/auth/login', async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
   const poolConn = await connection.getConnection();
-  // Unsafe login query
+  // Vulnerable login query
   if (username && password) {
-    await poolConn.query(`SELECT * FROM users WHERE username='${username}' AND userpass ='${password}'`)
-      .then(([rows]) => {
-        if (rows != 0) {
+    const [rows] = await poolConn.query(`SELECT * FROM users WHERE username='${username}' AND userpass ='${password}'`)
+    
+        if (rows.length > 0) {
+          console.log("row lenght in login: ", rows.lenght);
+          console.log(rows);
           req.session.loggedin = true;
           req.session.username = username;
           res.redirect('../restricted');
+
         }
         else {
           res.send('Incorrect Username and/or Password, click to <a href="/login">return</a>');
         }
         res.end();
-      }
-      ).catch(error => {
-        throw error;
-      });
-  } else {
+      } else {
     res.send('Please enter Username and Password then <a href="/login">try again</a>');
     res.end();
   }
