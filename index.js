@@ -7,7 +7,7 @@
 var express = require('express');
 var path = require('path');
 var session = require('express-session');
-var mysql = require('mysql2')
+var mysql = require('mysql2/promise')
 
 // Error handling
 process.on('uncaughtException', function (err) {
@@ -22,10 +22,12 @@ const connection = mysql.createPool({
   user: 'Admin',
   password: 'UkR3ROzecWiHVuTUCjVL',
   database: 'userdb',
+  waitForConnections: true,
   multipleStatements: true,
   keepAliveInitialDelay: 10000,
   enableKeepAlive: true
 })
+
 
 
 var app = module.exports = express();
@@ -92,13 +94,31 @@ app.get('/register', function (req, res) {
   res.render('register');
 });
 
-app.get('/index', function (req, res){
+app.get('/index', function (req, res) {
   res.render('index');
 })
-//register user
+//register and log in user
 
-app.post('/auth/register', function (req, res) {
-
+app.post('/auth/register', async (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+  const poolConn = await connection.getConnection();
+  if (username && password) {
+    await poolConn.query(`SELECT * FROM users WHERE username ='${username}'`).then(([rows])=>{
+      if (rows != 0) {
+        res.send('Username already exists, click to <a href="/register">try again</a>');
+      }
+      else
+       poolConn.query(`INSERT INTO users VALUES (DEFAULT, '${username}', '${password}')`).then(res.redirect('../restricted')).catch(error=>{
+          throw error;
+        })
+  }).catch(error =>{
+    throw error;
+  });}
+  else{
+    res.send('Please enter Username and Password then <a href="/register">try again</a>');
+    res.end();
+  }
 });
 
 // login and authenticate user
