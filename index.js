@@ -64,7 +64,7 @@ app.use(function (req, res, next) {
 
 // deny access to logged out users
 function restrict(req, res, next) {
-  if (req.session.loggedin) {
+  if (req.session) {
     next();
   } else {
     console.log('Access denied!');
@@ -110,7 +110,6 @@ app.post('/auth/register', async (req, res) => {
   // Vulnerable registration
   if (username && password) {
     const [rows] = await poolConn.query(`SELECT * FROM users WHERE username ='${username}'`)
-    console.log(rows.lenght);
         if (rows.length > 0) {
           res.send('Username already exists, click to <a href="/register">try again</a>');
         }
@@ -138,8 +137,6 @@ app.post('/auth/login', async (req, res) => {
     const [rows] = await poolConn.query(`SELECT * FROM users WHERE username='${username}' AND userpass ='${password}'`)
     
         if (rows.length > 0) {
-          console.log("row lenght in login: ", rows.lenght);
-          console.log(rows);
           req.session.loggedin = true;
           req.session.username = username;
           res.redirect('../restricted');
