@@ -71,19 +71,19 @@ function restrict(req, res, next) {
 }
 
 app.get('/', (req, res) => {
-  res.render('login', req.query);
+  res.render('login', {PORT});
 });
 
 // logged in users can see this
 app.get('/restricted', restrict, function (req, res) {
-  res.send('Wahoo! restricted area, click to <a href="/logout">logout</a>');
+  res.render('restricted',);
 });
 
 app.get('/logout', function (req, res) {
   // destroy the user's session to log them out
   // will be re-created next request
   req.session.destroy(function () {
-    res.redirect('/');
+    res.redirect('/login');
   });
 });
 
@@ -104,6 +104,7 @@ app.post('/auth/register', async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
   const poolConn = await connection.getConnection();
+  // unsafe registration
   if (username && password) {
     await poolConn.query(`SELECT * FROM users WHERE username ='${username}'`)
       .then(([rows]) => {
@@ -127,25 +128,27 @@ app.post('/auth/register', async (req, res) => {
 });
 
 // login and authenticate user
-app.post('/auth/login', function (req, res) {
+app.post('/auth/login', async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
+  const poolConn = await connection.getConnection();
   // Unsafe login query
   if (username && password) {
-    connection.query(`SELECT * FROM users WHERE username='${username}' AND userpass ='${password}'`, function (error, results, fileds) {
-      if (error) throw error;
-      if (results.length > 0) {
-        // set session
-        req.session.loggedin = true;
-        req.session.username = username;
-        res.redirect('/restricted');
+    await poolConn.query(`SELECT * FROM users WHERE username='${username}' AND userpass ='${password}'`)
+      .then(([rows]) => {
+        if (rows != 0) {
+          req.session.loggedin = true;
+          req.session.username = username;
+          res.redirect('../restricted');
+        }
+        else {
+          res.send('Incorrect Username and/or Password, click to <a href="/login">return</a>');
+        }
+        res.end();
       }
-      else {
-        res.send('Incorrect Username and/or Password, click to <a href="/login">return</a>');
-      }
-      res.end();
-    }
-    );
+      ).catch(error => {
+        throw error;
+      });
   } else {
     res.send('Please enter Username and Password then <a href="/login">try again</a>');
     res.end();
