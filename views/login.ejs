@@ -6,7 +6,7 @@
     <% } %>
       <h1>Login</h1>
       <table>
-        <tr>
+        <tr style="width:50%;">
           <td>
             <form method="POST" action="/auth/login">
               <p>
@@ -30,5 +30,24 @@
             </form>
           </td>
         </tr>
+        <tr style="width: 50%;">  <form action="/comment" method="POST"> 
+
+          <input type="text" name="comment" placeholder="Write a comment..."> 
+  
+          <button type="submit">Post Comment</button> 
+  
+      </form> 
+  
+      <h2>Comments:</h2> 
+  
+      <ul> 
+  
+          <% comments.forEach(function(comment) { %> 
+  
+              <li><%= comment %></li> 
+  
+          <% }); %> 
+  
+      </ul> </tr>
       </table>
       <%- include('foot') -%>

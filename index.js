@@ -52,11 +52,15 @@ app.use(session({
 
 // Session-persisted message middleware
 app.use(function (req, res, next) {
+
   var err = req.session.error;
   var msg = req.session.success;
+
   delete req.session.error;
   delete req.session.success;
+
   res.locals.message = '';
+
   if (err) res.locals.message = '<p class="msg error">' + err + '</p>';
   if (msg) res.locals.message = '<p class="msg success">' + msg + '</p>';
   next();
@@ -73,12 +77,14 @@ function restrict(req, res, next) {
 }
 // Allows XSS - CWE-79 and CVE-2017-1000228	related to EJS
 app.get('/', (req, res) => {
-  res.render('login', { PORT });
+  res.render('login', { PORT, comments: comments });
 });
 
 // logged in users can see this
 app.get('/restricted', restrict, function (req, res) {
+
   const USERNAME = req.session.username;
+
   res.render('restricted', { USERNAME });
 });
 
@@ -90,8 +96,11 @@ app.get('/logout', function (req, res) {
   });
 });
 
+// XSS vulnerability CWE-79
+let comments = [];
+
 app.get('/login', function (req, res) {
-  res.render('login', { PORT });
+  res.render('login', { PORT, comments: comments });
 });
 
 app.get('/register', function (req, res) {
@@ -101,25 +110,41 @@ app.get('/register', function (req, res) {
 app.get('/index', function (req, res) {
   res.render('index');
 })
+
+app.post('/comment', (req, res) => {
+
+  const comment = req.body.comment;
+
+  comments.push(comment);
+  res.redirect('/');
+
+});
+
 //register and log in user
 
 app.post('/auth/register', async (req, res) => {
+
   const username = req.body.username;
   const password = req.body.password;
   const poolConn = await connection.getConnection();
+
   // Vulnerable registration CWE-59
   if (username && password) {
-    const [rows] = await poolConn.query(`SELECT * FROM users WHERE username ='${username}'`)
-        if (rows.length > 0) {
-          res.send('Username already exists, click to <a href="/register">try again</a>');
-        }
-        else{
-          poolConn.query(`INSERT INTO users VALUES (DEFAULT, '${username}', '${password}')`)
-          req.session.loggedin = true;
-          req.session.username = username;
-          res.redirect('../restricted');
 
-        }
+    const [rows] = await poolConn.query(`SELECT * FROM users WHERE username ='${username}'`)
+
+    if (rows.length > 0) {
+      res.send('Username already exists, click to <a href="/register">try again</a>');
+    }
+    else {
+
+      poolConn.query(`INSERT INTO users VALUES (DEFAULT, '${username}', '${password}')`)
+      req.session.loggedin = true;
+      req.session.username = username;
+
+      res.redirect('../restricted');
+
+    }
   }
   else {
     res.send('Please enter Username and Password then <a href="/register">try again</a>');
@@ -129,24 +154,29 @@ app.post('/auth/register', async (req, res) => {
 
 // login and authenticate user
 app.post('/auth/login', async (req, res) => {
+
   const username = req.body.username;
   const password = req.body.password;
   const poolConn = await connection.getConnection();
+
   // Vulnerable login query CWE-59
   if (username && password) {
-    const [rows] = await poolConn.query(`SELECT * FROM users WHERE username='${username}' AND userpass ='${password}'`)
-    
-        if (rows.length > 0) {
-          req.session.loggedin = true;
-          req.session.username = username;
-          res.redirect('../restricted');
 
-        }
-        else {
-          res.send('Incorrect Username and/or Password, click to <a href="/login">return</a>');
-        }
-        res.end();
-      } else {
+    const [rows] = await poolConn.query(`SELECT * FROM users WHERE username='${username}' AND userpass ='${password}'`)
+
+    if (rows.length > 0) {
+
+      req.session.loggedin = true;
+      req.session.username = username;
+
+      res.redirect('../restricted');
+
+    }
+    else {
+      res.send('Incorrect Username and/or Password, click to <a href="/login">return</a>');
+    }
+    res.end();
+  } else {
     res.send('Please enter Username and Password then <a href="/login">try again</a>');
     res.end();
   }
@@ -155,7 +185,9 @@ app.post('/auth/login', async (req, res) => {
 
 //reset DB
 app.post('/auth/ResetDB', function (req, res) {
+
   connection.query(`TRUNCATE TABLE users; INSERT INTO users VALUES (DEFAULT, 'a', 'a'), (DEFAULT, 'b', 'b');`)
+
   res.redirect('/login')
 
 })
