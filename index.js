@@ -39,7 +39,7 @@ var app = module.exports = express();
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-app.use(express.urlencoded({ extended: false }))
+app.use(express.urlencoded({ extended: true }))
 app.use(session({
   secret: 'keyboard cat',
   resave: false,
@@ -77,7 +77,7 @@ function restrict(req, res, next) {
 }
 // Allows XSS - CWE-79 and CVE-2017-1000228	related to EJS
 app.get('/', (req, res) => {
-  res.render('login', { PORT, comments: comments });
+  res.render('login', {comments: comments});
 });
 
 // logged in users can see this
@@ -100,7 +100,7 @@ app.get('/logout', function (req, res) {
 let comments = [];
 
 app.get('/login', function (req, res) {
-  res.render('login', { PORT, comments: comments });
+  res.render('login', {comments: comments});
 });
 
 app.get('/register', function (req, res) {
